@@ -1,5 +1,8 @@
 const redux = require('redux');
 const createStore = redux.createStore;
+const applyMiddleware = redux.applyMiddleware;
+const thunkMiddleware = require('redux-thunk').default;
+const axios = require('axios');
 
 const initialState = {
 	loading: false,
@@ -53,4 +56,24 @@ const reducer = (state = initialState, action) => {
 	}
 };
 
-const store = createStore(reducer);
+//Utilizando un thunk-middleware tenemos la capacidad de retornar una función en lugar de un objeto. Esta función no tiene que ser pura y puede tener side effects como ser el llamado a una API y también es capaz de hacer dispatch de actions.
+const fetchUsers = () => {
+	return function (dispatch) {
+		dispatch(fetchUsersRequest());
+		axios
+			.get('https://jsonplaceholder.typicode.com/users')
+			.then(response => {
+				const users = response.data.map(user => user.id);
+				dispatch(fetchUsersSuccess(users));
+			})
+			.catch(error => {
+				dispatch(fetchUsersFailure(error.message));
+			});
+	};
+};
+
+const store = createStore(reducer, applyMiddleware(thunkMiddleware));
+store.subscribe(() => {
+	console.log(store.getState());
+});
+store.dispatch(fetchUsers());
